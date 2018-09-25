@@ -9,7 +9,6 @@ var ip string
 var port string
 
 func main() {
-
 	//监听 begin
 	address := ip + ":" + port
 	listener, err := net.Listen("tcp", address)
