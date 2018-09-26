@@ -1,6 +1,7 @@
 package main
 
 import (
+	"TcpServer/handle"
 	"log"
 	"net"
 )
@@ -18,5 +19,5 @@ func waitConnection(listener net.Listener) error {
 }
 
 func handelConnection(conn net.Conn) {
-	log.Printf("[%s连接]", conn.RemoteAddr())
+	go handle.HandlerConn(conn)
 }
