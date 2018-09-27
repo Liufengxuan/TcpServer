@@ -2,46 +2,70 @@ package handle
 
 import (
 	"TcpServer/models/dbops"
-	"TcpServer/models/recode"
-	"fmt"
 	"log"
 	"net"
 	"strings"
 )
 
-var lineBreakLength int
-
-type currentInfo struct {
+type context struct {
 	userInfo    dbops.User
 	sessionInfo dbops.Session
+	conn        net.Conn
+	cmds        []string
+	endFlag     bool
 }
 
+/**************************method*********************************************************/
+
+//HandlerConn 调用此方法处理连接。
 func HandlerConn(conn net.Conn) {
-	var curInfo currentInfo
-	defer conn.Close()
-	//读消息。
-	log.Println("处理", conn.RemoteAddr().String())
-	buf := make([]byte, 1024)
+	var userContext context
+	userContext.conn = conn
+	userContext.endFlag = false
+	defer func() {
+		log.Println("——>处理结束", userContext.conn.RemoteAddr().String())
+		userContext.conn.Close()
 
-	n, err := conn.Read(buf)
-	if err != nil {
-		log.Printf("[读取用户内容时出现异常：%s]\n", err)
-		return
-	}
+	}()
 
-	//处理分割消息。
-	cmd := string(buf[:n-lineBreakLength])
+	log.Println("——>开始处理", userContext.conn.RemoteAddr().String())
+	rBuf := make([]byte, readBufferSize)
 
-	fmt.Println(lineBreakLength)
-
-	cmds := strings.Split(cmd, " ")
-	if len(cmds) > 1 {
-		if auth(cmds, &curInfo) {
-			log.Printf("[ok(%s)]\n", cmds)
+	for {
+		if userContext.endFlag {
+			return
 		}
 
-	} else {
-		conn.Write([]byte(recode.RECODE_PARAMERR))
+		n, err := userContext.conn.Read(rBuf)
+		if err != nil {
+			log.Printf("[读取用户内容时出现异常,可能由于用户断开了连接：%s]\n", err)
+			return
+		}
+		//处理分割消息。
+		cmd := string(rBuf[:n-lineBreakLength])
+		userContext.cmds = strings.Split(cmd, " ")
+
+		//-------------------------------------------------------------
+		if len(userContext.cmds) > 1 {
+			cmdFilter(&userContext)
+		} else {
+			cmdFilter(&userContext)
+		}
+
 	}
 
+}
+
+/**************************method*********************************************************/
+
+func cmdFilter(userContext *context) {
+	cmd := strings.ToUpper(userContext.cmds[0])
+	switch cmd {
+	case "LOGIN":
+		auth(userContext)
+	case "EXIT":
+		exit(userContext)
+	default:
+		unIdentified(userContext)
+	}
 }
