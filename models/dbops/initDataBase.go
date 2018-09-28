@@ -5,6 +5,8 @@ import (
 	_ "github.com/mattn/go-sqlite3" // import your used driver
 )
 
+var DBContext orm.Ormer
+
 func init() {
 	// set default database
 	orm.RegisterDataBase("default", "sqlite3", "./$database/Data.db", 30)
@@ -14,4 +16,5 @@ func init() {
 
 	// create table
 	orm.RunSyncdb("default", false, false)
+	DBContext = orm.NewOrm()
 }

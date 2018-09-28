@@ -25,27 +25,25 @@ func HandlerConn(conn net.Conn) {
 	defer func() {
 		log.Println("——>处理结束", userContext.conn.RemoteAddr().String())
 		userContext.conn.Close()
-
 	}()
 
 	log.Println("——>开始处理", userContext.conn.RemoteAddr().String())
 	rBuf := make([]byte, readBufferSize)
-
+	//--------------------------------------------------------------
 	for {
+		//通过结束标记 判断此会话是否已经结束
 		if userContext.endFlag {
 			return
 		}
 
+		//接收和 解析消息
 		n, err := userContext.conn.Read(rBuf)
 		if err != nil {
 			log.Printf("[读取用户内容时出现异常,可能由于用户断开了连接：%s]\n", err)
 			return
 		}
-		//处理分割消息。
-		cmd := string(rBuf[:n-lineBreakLength])
+		cmd := charReplace(string(rBuf[:n]))
 		userContext.cmds = strings.Split(cmd, " ")
-
-		//-------------------------------------------------------------
 		if len(userContext.cmds) > 1 {
 			cmdFilter(&userContext)
 		} else {
@@ -53,19 +51,35 @@ func HandlerConn(conn net.Conn) {
 		}
 
 	}
+	//---------------------------------------------------------
 
 }
 
 /**************************method*********************************************************/
 
 func cmdFilter(userContext *context) {
-	cmd := strings.ToUpper(userContext.cmds[0])
-	switch cmd {
-	case "LOGIN":
+	userContext.cmds[0] = strings.ToUpper(userContext.cmds[0])
+
+	//判断用户是否为第一次登陆
+	if userContext.sessionInfo.SId == "" {
 		auth(userContext)
-	case "EXIT":
-		exit(userContext)
-	default:
-		unIdentified(userContext)
+	} else {
+		//————————————————————————————————————————————————
+		switch userContext.cmds[0] {
+		case "EXIT":
+			exit(userContext)
+		default:
+			unIdentified(userContext)
+		}
+		//————————————————————————————————————————————————
 	}
+
+}
+
+/**************************method*********************************************************/
+
+func charReplace(s string) string {
+	s = strings.Replace(s, "\n", "", -1)
+	s = strings.Replace(s, "\r", "", -1)
+	return s
 }
