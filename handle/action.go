@@ -19,9 +19,7 @@ func auth(curInfo *context) {
 			curInfo.conn.Write([]byte(serverErr))
 		} else if rst != "" {
 			curInfo.conn.Write([]byte(rst))
-			log.Printf("[%s登陆成功]\n", curInfo.sessionInfo.UserIp)
-			log.Println(curInfo.sessionInfo.SId)
-			log.Println(curInfo.userInfo.PassWord)
+			log.Printf("[%s:登陆成功]\n", curInfo.sessionInfo.UserIp)
 		}
 
 	}()
@@ -41,7 +39,6 @@ func auth(curInfo *context) {
 			}
 			serverErr = recode.RECODE_DBERR
 			return
-
 		}
 
 		pwd, err := com.GetMD5(curInfo.cmds[2])

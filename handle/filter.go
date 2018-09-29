@@ -23,11 +23,11 @@ func HandlerConn(conn net.Conn) {
 	userContext.conn = conn
 	userContext.endFlag = false
 	defer func() {
-		log.Println("——>处理结束", userContext.conn.RemoteAddr().String())
+		log.Printf("[%s:已断开]", userContext.conn.RemoteAddr().String())
 		userContext.conn.Close()
 	}()
 
-	log.Println("——>开始处理", userContext.conn.RemoteAddr().String())
+	log.Printf("[%s:已连接]", userContext.conn.RemoteAddr().String())
 	rBuf := make([]byte, readBufferSize)
 	//--------------------------------------------------------------
 	for {
@@ -38,6 +38,7 @@ func HandlerConn(conn net.Conn) {
 
 		//接收和 解析消息
 		n, err := userContext.conn.Read(rBuf)
+
 		if err != nil {
 			log.Printf("[读取用户内容时出现异常,可能由于用户断开了连接：%s]\n", err)
 			return
@@ -49,7 +50,6 @@ func HandlerConn(conn net.Conn) {
 		} else {
 			cmdFilter(&userContext)
 		}
-
 	}
 	//---------------------------------------------------------
 
