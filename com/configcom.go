@@ -24,7 +24,7 @@ func init() {
 	//获取配置文件信息  begin
 	log.Println("[正在获取配置文件信息]")
 	if cfg.configer == nil {
-		c, err := config.NewConfig("ini", "./$config/server.conf")
+		c, err := config.NewConfig("ini", "../server.conf")
 		if err != nil {
 			log.Println("[配置文件初始化失败 ！]")
 			return

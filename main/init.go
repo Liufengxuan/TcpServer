@@ -5,6 +5,11 @@ import (
 	"log"
 )
 
+var ip string
+var port string
+var reListenNum int
+var maxProcs int
+
 func init() {
 	//获取配置文件信息  begin
 	cfg, err := com.GetConfig()

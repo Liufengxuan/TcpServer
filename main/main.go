@@ -8,11 +8,6 @@ import (
 	"time"
 )
 
-var ip string
-var port string
-var reListenNum int
-var maxProcs int
-
 func main() {
 	//监听 begin
 	var connChan = make(chan net.Conn, 10) //存储连接。

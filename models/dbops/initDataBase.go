@@ -9,7 +9,7 @@ var DBContext orm.Ormer
 
 func init() {
 	// set default database
-	orm.RegisterDataBase("default", "sqlite3", "./$database/Data.db", 30)
+	orm.RegisterDataBase("default", "sqlite3", "./../Data.db", 30)
 
 	// register model
 	orm.RegisterModel(new(User), new(Session))
