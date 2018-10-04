@@ -4,6 +4,7 @@ import (
 	"TcpServer/com"
 	"log"
 	"runtime"
+	"strings"
 )
 
 //缓冲区大小
@@ -13,9 +14,13 @@ var writeBufferSize int
 //当前系统的换行符长度。
 var lineBreakLength int
 
+//当前系统的管理员账户
+var admin []string
+
 func init() {
 	initSysType()
 	initBufferSize()
+	loadAdminUserInfo()
 }
 
 func initSysType() {
@@ -44,4 +49,20 @@ func initBufferSize() {
 		log.Println("<缓冲区配置读取失败、已经设置为 readBuffer=4096,writeBuffer=2048>")
 	}
 	log.Println("[已初始化缓冲区设置]")
+}
+
+func loadAdminUserInfo() {
+	cfg, err := com.GetConfig()
+	if err != nil {
+		log.Println(err)
+	}
+
+	str := cfg.GetString("User::admin_userNmae")
+	if str == "" {
+		log.Println("[未从配置文件读取到管理员名称]")
+		return
+	}
+	admin = strings.Split(str, "*")
+	log.Println("[已加载管理员列表  ", admin, "  ]")
+
 }

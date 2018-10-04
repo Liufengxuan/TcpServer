@@ -10,9 +10,12 @@ import (
 type context struct {
 	userInfo    dbops.User
 	sessionInfo dbops.Session
-	conn        net.Conn
-	cmds        []string
-	endFlag     bool
+	//当前用户的   连接对象
+	conn net.Conn
+	//当前用户的    命令
+	cmds []string
+	//当前用户的    会话结束标志
+	endFlag bool
 }
 
 /**************************method*********************************************************/
@@ -29,6 +32,7 @@ func HandlerConn(conn net.Conn) {
 
 	log.Printf("[%s:已连接]", userContext.conn.RemoteAddr().String())
 	rBuf := make([]byte, readBufferSize)
+
 	//--------------------------------------------------------------
 	for {
 		//通过结束标记 判断此会话是否已经结束
@@ -38,18 +42,15 @@ func HandlerConn(conn net.Conn) {
 
 		//接收和 解析消息
 		n, err := userContext.conn.Read(rBuf)
-
 		if err != nil {
 			log.Printf("[读取用户内容时出现异常,可能由于用户断开了连接：%s]\n", err)
 			return
 		}
 		cmd := charReplace(string(rBuf[:n]))
 		userContext.cmds = strings.Split(cmd, " ")
-		if len(userContext.cmds) > 1 {
-			cmdFilter(&userContext)
-		} else {
-			cmdFilter(&userContext)
-		}
+
+		//通过过滤命令来处理消息。
+		cmdFilter(&userContext)
 	}
 	//---------------------------------------------------------
 
@@ -66,8 +67,25 @@ func cmdFilter(userContext *context) {
 	} else {
 		//————————————————————————————————————————————————
 		switch userContext.cmds[0] {
+		//EXIT 命令
 		case "EXIT":
 			exit(userContext)
+		//CREATE命令
+		case "CREATE":
+			if len(userContext.cmds) >= 3 {
+				userContext.cmds[1] = strings.ToUpper(userContext.cmds[1])
+				switch userContext.cmds[1] {
+				//创建用户
+				case "USER":
+					addUser(userContext)
+				case "DIR":
+				default:
+					unIdentified(userContext)
+				}
+			} else {
+				unIdentified(userContext)
+			}
+		//没有的命令
 		default:
 			unIdentified(userContext)
 		}

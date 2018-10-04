@@ -10,7 +10,12 @@ import (
 )
 
 /**************************验证并解析身份**********************************/
-func auth(curInfo *context) {
+func addUser(curInfo *context) {
+	curInfo.conn.Write([]byte("创建成功"))
+}
+
+/**************************验证并解析身份**********************************/
+func auth(curInfo *context) { //身份验证成功返回02；程序出错返回4500；命令错误返回4104；数据库查询出错4001
 	var rst string
 	var serverErr string
 	defer func() {
