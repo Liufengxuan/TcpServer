@@ -11,7 +11,58 @@ import (
 
 /**************************验证并解析身份**********************************/
 func addUser(curInfo *context) {
-	curInfo.conn.Write([]byte("创建成功"))
+	var respCode string
+	var err error
+	defer func() {
+		respByte(curInfo, respCode)
+	}()
+
+	user := dbops.User{Name: curInfo.cmds[2]}
+	err = dbops.DBContext.Read(&user, "Name")
+	if err != nil && err != orm.ErrNoRows {
+		respCode = recode.RECODE_DBERR
+		return
+	}
+	if user.Id != 0 {
+		respCode = recode.RECODE_REPEATUSER
+		return
+	}
+	if curInfo.cmdLength != 4 {
+		respCode = recode.RECODE_CMDFORMATERR
+		return
+	}
+
+	//通过验证后、给用户创建数据
+	newUser := new(dbops.User)
+	newHomeDir := new(dbops.FileInfo)
+	newUser.PassWord, err = com.GetMD5(curInfo.cmds[3])
+	if err != nil {
+		respCode = recode.RECODE_SERVERERR
+		return
+	}
+	newUser.Name = curInfo.cmds[2]
+	newHomeDir.IsDir = true
+	newHomeDir.IsHome = true
+	newHomeDir.Name = curInfo.cmds[2] + "Home"
+	//开启一个事务
+	err = dbops.DBContext.Begin()
+	_, err = dbops.DBContext.Insert(newUser)
+	newHomeDir.User = newUser
+	_, err = dbops.DBContext.Insert(newHomeDir)
+	if err != nil {
+		rollBackErr := dbops.DBContext.Rollback()
+		if rollBackErr != nil {
+			log.Printf("[添加用户数据回滚失败、可能产生了脏数据 err=%s]\n", rollBackErr)
+		}
+		respCode = recode.RECODE_ADDDATAERR
+	} else {
+		commitErr := dbops.DBContext.Commit()
+		if commitErr != nil {
+			respCode = recode.RECODE_ADDDATAERR
+		}
+		respCode = recode.RECODE_OK
+	}
+
 }
 
 /**************************验证并解析身份**********************************/
@@ -26,7 +77,6 @@ func auth(curInfo *context) { //身份验证成功返回02；程序出错返回4
 			curInfo.conn.Write([]byte(rst))
 			log.Printf("[%s:登陆成功]\n", curInfo.sessionInfo.UserIp)
 		}
-
 	}()
 	//--------------------------------------------------
 	if len(curInfo.cmds) != 3 {

@@ -1,6 +1,7 @@
 package handle
 
 import (
+	"TcpServer/com"
 	"TcpServer/models/dbops"
 	"log"
 	"net"
@@ -14,6 +15,8 @@ type context struct {
 	conn net.Conn
 	//当前用户的    命令
 	cmds []string
+
+	cmdLength int
 	//当前用户的    会话结束标志
 	endFlag bool
 }
@@ -46,9 +49,9 @@ func HandlerConn(conn net.Conn) {
 			log.Printf("[读取用户内容时出现异常,可能由于用户断开了连接：%s]\n", err)
 			return
 		}
-		cmd := charReplace(string(rBuf[:n]))
+		cmd := com.CharReplace(string(rBuf[:n]))
 		userContext.cmds = strings.Split(cmd, " ")
-
+		userContext.cmdLength = len(userContext.cmds)
 		//通过过滤命令来处理消息。
 		cmdFilter(&userContext)
 	}
@@ -57,7 +60,6 @@ func HandlerConn(conn net.Conn) {
 }
 
 /**************************method*********************************************************/
-
 func cmdFilter(userContext *context) {
 	userContext.cmds[0] = strings.ToUpper(userContext.cmds[0])
 
@@ -75,10 +77,11 @@ func cmdFilter(userContext *context) {
 			if len(userContext.cmds) >= 3 {
 				userContext.cmds[1] = strings.ToUpper(userContext.cmds[1])
 				switch userContext.cmds[1] {
-				//创建用户
+				//USER命令
 				case "USER":
 					addUser(userContext)
-				case "DIR":
+					//DIR命令
+				//case "DIR":
 				default:
 					unIdentified(userContext)
 				}
