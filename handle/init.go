@@ -2,9 +2,11 @@ package handle
 
 import (
 	"TcpServer/com"
+	"TcpServer/loging"
 	"log"
 	"runtime"
 	"strings"
+	"time"
 )
 
 //缓冲区大小
@@ -15,12 +17,16 @@ var writeBufferSize int
 var lineBreakLength int
 
 //当前系统的管理员账户
-var admin []string
+var adminList []string
+
+//等待用户消息超时时间
+var respTimeout time.Duration
 
 func init() {
 	initSysType()
 	initBufferSize()
-	loadAdminUserInfo()
+	initAdminUserInfo()
+	initRespTimeout()
 }
 
 func initSysType() {
@@ -47,11 +53,11 @@ func initBufferSize() {
 		readBufferSize = 4096
 		writeBufferSize = 2048
 		log.Println("<缓冲区配置读取失败、已经设置为 readBuffer=4096,writeBuffer=2048>")
+		loging.Loger.Error("<缓冲区配置读取失败、已经设置为 readBuffer=4096,writeBuffer=2048>")
 	}
-	log.Println("[已初始化缓冲区设置]")
 }
 
-func loadAdminUserInfo() {
+func initAdminUserInfo() {
 	cfg, err := com.GetConfig()
 	if err != nil {
 		log.Println(err)
@@ -60,9 +66,47 @@ func loadAdminUserInfo() {
 	str := cfg.GetString("User::admin_userNmae")
 	if str == "" {
 		log.Println("[未从配置文件读取到管理员名称]")
+		loging.Loger.Error("[未从配置文件读取到管理员名称]")
 		return
 	}
-	admin = strings.Split(str, "*")
-	log.Println("[已加载管理员列表  ", admin, "  ]")
+	adminList = strings.Split(str, "*")
+
+}
+func initRespTimeout() {
+	var err1 error
+	var second int
+	cfg, err := com.GetConfig()
+	if err != nil {
+		log.Println(err)
+	}
+
+	second, err1 = cfg.GetInt("session::responseTimeout")
+	if err1 != nil {
+		respTimeout = time.Second * 90
+		log.Println("<responseTimeout配置项读取失败、已经设置默认值 responseTimeout=90>")
+	}
+	respTimeout = time.Second * time.Duration(second)
+
+	// switch second {
+	// case 8:
+	// 	respTimeout = time.Second * 8
+	// case 16:
+	// 	respTimeout = time.Second * 16
+	// case 32:
+	// 	respTimeout = time.Second * 32
+	// case 64:
+	// 	respTimeout = time.Second * 64
+	// case 128:
+	// 	respTimeout = time.Second * 128
+	// case 256:
+	// 	respTimeout = time.Second * 256
+	// case 512:
+	// 	respTimeout = time.Second * 512
+	// case 1024:
+	// 	respTimeout = time.Second * 1024
+	// default:
+	// 	respTimeout = time.Second * 90
+	// 	log.Println("<responseTimeout配置项值无效、已经设置默认值 responseTimeout=90>")
+	// }
 
 }

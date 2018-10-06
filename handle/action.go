@@ -10,12 +10,17 @@ import (
 )
 
 /**************************验证并解析身份**********************************/
-func addUser(curInfo *context) {
+func addUser(curInfo *context) { //2009权限不足、2007用户信息重复、2002命令格式不对、4500服务器出错、4005添加数据出错、1001成功
 	var respCode string
 	var err error
 	defer func() {
 		respByte(curInfo, respCode)
 	}()
+	//判断是不是管理员。
+	if !isAdmin(curInfo.userInfo.Name) {
+		respCode = recode.RECODE_NOPERMISSION
+		return
+	}
 
 	user := dbops.User{Name: curInfo.cmds[2]}
 	err = dbops.DBContext.Read(&user, "Name")
@@ -66,7 +71,7 @@ func addUser(curInfo *context) {
 }
 
 /**************************验证并解析身份**********************************/
-func auth(curInfo *context) { //身份验证成功返回02；程序出错返回4500；命令错误返回4104；数据库查询出错4001
+func auth(curInfo *context) { //身份验证成功返回1002；程序出错返回4500；命令错误返回2004；数据库查询出错2008
 	var rst string
 	var serverErr string
 	defer func() {
@@ -134,6 +139,6 @@ func turnDown(curInfo *context) {
 
 /**************************退出指令**********************************/
 func exit(curInfo *context) {
-	curInfo.conn.Write([]byte(recode.RECODE_OK))
 	curInfo.endFlag = true
+	curInfo.conn.Write([]byte(recode.RECODE_OK))
 }

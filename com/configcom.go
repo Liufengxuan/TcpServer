@@ -22,7 +22,6 @@ type conf struct {
 
 func init() {
 	//获取配置文件信息  begin
-	log.Println("[正在获取配置文件信息]")
 	if cfg.configer == nil {
 		c, err := config.NewConfig("ini", "./server.conf")
 		if err != nil {
@@ -34,7 +33,6 @@ func init() {
 			return
 		}
 		cfg = conf{c}
-		log.Println("[已获取到配置文件信息]")
 	}
 	//获取配置文件信息  end
 }

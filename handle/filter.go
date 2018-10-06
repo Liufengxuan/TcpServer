@@ -6,6 +6,7 @@ import (
 	"log"
 	"net"
 	"strings"
+	"time"
 )
 
 type context struct {
@@ -34,7 +35,6 @@ func HandlerConn(conn net.Conn) {
 	}()
 
 	log.Printf("[%s:已连接]", userContext.conn.RemoteAddr().String())
-	rBuf := make([]byte, readBufferSize)
 
 	//--------------------------------------------------------------
 	for {
@@ -44,23 +44,39 @@ func HandlerConn(conn net.Conn) {
 		}
 
 		//接收和 解析消息
-		n, err := userContext.conn.Read(rBuf)
-		if err != nil {
-			log.Printf("[读取用户内容时出现异常,可能由于用户断开了连接：%s]\n", err)
+		msgCh := make(chan string)
+		errCh := make(chan error)
+		go func() {
+			rBuf := make([]byte, readBufferSize)
+			n, err := userContext.conn.Read(rBuf)
+			if err != nil {
+				errCh <- err
+			}
+			msgCh <- string(rBuf[:n])
+
+		}()
+
+		select {
+		case msg := <-msgCh:
+			cmd := com.CharReplace(msg)
+			userContext.cmds = strings.Split(cmd, " ")
+			userContext.cmdLength = len(userContext.cmds)
+			cmdRoute(&userContext)
+		case err := <-errCh:
+			log.Printf("[读取用户消息时出现异常：%s]\n", err)
+			return
+		case <-time.After(respTimeout):
+			log.Printf("[%s:用户长时间未响应]", userContext.conn.RemoteAddr().String())
 			return
 		}
-		cmd := com.CharReplace(string(rBuf[:n]))
-		userContext.cmds = strings.Split(cmd, " ")
-		userContext.cmdLength = len(userContext.cmds)
-		//通过过滤命令来处理消息。
-		cmdFilter(&userContext)
+
 	}
 	//---------------------------------------------------------
 
 }
 
 /**************************method*********************************************************/
-func cmdFilter(userContext *context) {
+func cmdRoute(userContext *context) {
 	userContext.cmds[0] = strings.ToUpper(userContext.cmds[0])
 
 	//判断用户是否为第一次登陆
@@ -97,10 +113,11 @@ func cmdFilter(userContext *context) {
 
 }
 
-/**************************method*********************************************************/
-
-func charReplace(s string) string {
-	s = strings.Replace(s, "\n", "", -1)
-	s = strings.Replace(s, "\r", "", -1)
-	return s
+func isAdmin(s string) bool {
+	for i, _ := range adminList {
+		if adminList[i] == s {
+			return true
+		}
+	}
+	return false
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"TcpServer/handle"
+	"TcpServer/loging"
 	"log"
 	"net"
 	"runtime"
@@ -19,14 +20,16 @@ func main() {
 	defer listener.Close()
 	if err != nil {
 		log.Printf("[%s：地址使用失败]\n", address)
+		loging.Loger.Error("[%s：地址使用失败]\n", address)
 	}
-	log.Printf("[准备监听 %s]\n", address)
-
+	//log.Printf("[监听 %s]\n", address)
+	loging.Loger.Info("[监听 %s]\n", address)
 	for {
 		if isReStart {
 			runtime.GOMAXPROCS(maxProcs)
 			go waitConnection(listener, connChan, errChan)
-			log.Println("[监听进程已启动]")
+
+			loging.Loger.Info("[监听进程已启动]")
 			isReStart = false
 		}
 
@@ -42,6 +45,7 @@ func main() {
 				continue
 			} else {
 				log.Println("[主进程尝试多次启动后失败]")
+				loging.Loger.Error("[主进程尝试多次启动后失败]")
 				return
 			}
 
