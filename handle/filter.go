@@ -15,12 +15,13 @@ func HandlerConn(conn net.Conn) {
 	var userContext context
 	userContext.conn = conn
 	userContext.endFlag = false
+	userContext.sessionInfo.UserIp = userContext.conn.RemoteAddr().String()
 	defer func() {
-		loging.Loger.Info("[%s:会话结束]", userContext.conn.RemoteAddr().String())
+		loging.Loger.Info("[%s:会话结束]", userContext.sessionInfo.UserIp)
 		userContext.conn.Close()
 	}()
 
-	loging.Loger.Info("[%s:已连接]", userContext.conn.RemoteAddr().String())
+	loging.Loger.Info("[%s:已连接]", userContext.sessionInfo.UserIp)
 
 	//--------------------------------------------------------------
 	for {
@@ -39,20 +40,18 @@ func HandlerConn(conn net.Conn) {
 				errCh <- err
 			}
 			msgCh <- string(rBuf[:n])
-
 		}()
 
 		select {
 		case msg := <-msgCh:
-			cmd := com.CharReplace(msg)
-			userContext.cmds = strings.Split(cmd, " ")
+			userContext.cmds = com.CmdFormat(msg)
 			userContext.cmdLength = len(userContext.cmds)
 			cmdRoute(&userContext)
 		case err := <-errCh:
 			loging.Loger.Warning("[读取用户消息时出现异常：%s]\n", err)
 			return
 		case <-time.After(respTimeout):
-			loging.Loger.Info("[%s:用户长时间未响应]", userContext.conn.RemoteAddr().String())
+			loging.Loger.Info("[%s:用户长时间未响应]", userContext.sessionInfo.UserIp)
 			return
 		}
 
@@ -63,11 +62,16 @@ func HandlerConn(conn net.Conn) {
 
 /**************************method*********************************************************/
 func cmdRoute(userContext *context) {
-	userContext.cmds[0] = strings.ToUpper(userContext.cmds[0])
+	if userContext.cmdLength > 0 {
+		userContext.cmds[0] = strings.ToUpper(userContext.cmds[0])
+	} else {
+		userContext.unIdentified()
+		return
+	}
 
-	//判断用户是否为第一次登陆
+	//判断用户是否登录
 	if userContext.sessionInfo.SId == "" {
-		userContext.auth()
+		userContext.login()
 	} else {
 		//————————————————————————————————————————————————
 		switch userContext.cmds[0] {
@@ -76,20 +80,7 @@ func cmdRoute(userContext *context) {
 			userContext.exit()
 		//CREATE命令
 		case "CREATE":
-			if len(userContext.cmds) >= 3 {
-				userContext.cmds[1] = strings.ToUpper(userContext.cmds[1])
-				switch userContext.cmds[1] {
-				//USER命令
-				case "USER":
-					userContext.addUser()
-					//DIR命令
-				//case "DIR":
-				default:
-					userContext.unIdentified()
-				}
-			} else {
-				userContext.unIdentified()
-			}
+			createCmd(userContext)
 		//没有的命令
 		default:
 			userContext.unIdentified()
@@ -99,11 +90,21 @@ func cmdRoute(userContext *context) {
 
 }
 
-func isAdmin(s string) bool {
-	for i, _ := range adminList {
-		if adminList[i] == s {
-			return true
+//**************************当首级指令为create执行此方法***************************************************
+func createCmd(userContext *context) {
+	if len(userContext.cmds) >= 3 {
+		userContext.cmds[1] = strings.ToUpper(userContext.cmds[1])
+		switch userContext.cmds[1] {
+		//USER命令
+		case "USER":
+			userContext.addUser()
+			//DIR命令
+		case "DIR":
+			userContext.addFolder()
+		default:
+			userContext.unIdentified()
 		}
+	} else {
+		userContext.unIdentified()
 	}
-	return false
 }
