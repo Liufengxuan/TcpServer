@@ -2,25 +2,11 @@ package handle
 
 import (
 	"TcpServer/com"
-	"TcpServer/models/dbops"
-	"log"
+	"TcpServer/loging"
 	"net"
 	"strings"
 	"time"
 )
-
-type context struct {
-	userInfo    dbops.User
-	sessionInfo dbops.Session
-	//当前用户的   连接对象
-	conn net.Conn
-	//当前用户的    命令
-	cmds []string
-
-	cmdLength int
-	//当前用户的    会话结束标志
-	endFlag bool
-}
 
 /**************************method*********************************************************/
 
@@ -30,11 +16,11 @@ func HandlerConn(conn net.Conn) {
 	userContext.conn = conn
 	userContext.endFlag = false
 	defer func() {
-		log.Printf("[%s:已断开]", userContext.conn.RemoteAddr().String())
+		loging.Loger.Info("[%s:会话结束]", userContext.conn.RemoteAddr().String())
 		userContext.conn.Close()
 	}()
 
-	log.Printf("[%s:已连接]", userContext.conn.RemoteAddr().String())
+	loging.Loger.Info("[%s:已连接]", userContext.conn.RemoteAddr().String())
 
 	//--------------------------------------------------------------
 	for {
@@ -63,10 +49,10 @@ func HandlerConn(conn net.Conn) {
 			userContext.cmdLength = len(userContext.cmds)
 			cmdRoute(&userContext)
 		case err := <-errCh:
-			log.Printf("[读取用户消息时出现异常：%s]\n", err)
+			loging.Loger.Warning("[读取用户消息时出现异常：%s]\n", err)
 			return
 		case <-time.After(respTimeout):
-			log.Printf("[%s:用户长时间未响应]", userContext.conn.RemoteAddr().String())
+			loging.Loger.Info("[%s:用户长时间未响应]", userContext.conn.RemoteAddr().String())
 			return
 		}
 
@@ -81,13 +67,13 @@ func cmdRoute(userContext *context) {
 
 	//判断用户是否为第一次登陆
 	if userContext.sessionInfo.SId == "" {
-		auth(userContext)
+		userContext.auth()
 	} else {
 		//————————————————————————————————————————————————
 		switch userContext.cmds[0] {
 		//EXIT 命令
-		case "EXIT":
-			exit(userContext)
+		case "QUIT":
+			userContext.exit()
 		//CREATE命令
 		case "CREATE":
 			if len(userContext.cmds) >= 3 {
@@ -95,18 +81,18 @@ func cmdRoute(userContext *context) {
 				switch userContext.cmds[1] {
 				//USER命令
 				case "USER":
-					addUser(userContext)
+					userContext.addUser()
 					//DIR命令
 				//case "DIR":
 				default:
-					unIdentified(userContext)
+					userContext.unIdentified()
 				}
 			} else {
-				unIdentified(userContext)
+				userContext.unIdentified()
 			}
 		//没有的命令
 		default:
-			unIdentified(userContext)
+			userContext.unIdentified()
 		}
 		//————————————————————————————————————————————————
 	}

@@ -20,16 +20,16 @@ func main() {
 	defer listener.Close()
 	if err != nil {
 		log.Printf("[%s：地址使用失败]\n", address)
-		loging.Loger.Error("[%s：地址使用失败]\n", address)
+		//loging.Loger.Error("[%s：地址使用失败]\n", address)
 	}
-	//log.Printf("[监听 %s]\n", address)
-	loging.Loger.Info("[监听 %s]\n", address)
+	log.Printf("[监听 %s]\n", address)
+	//loging.Loger.Info("[监听 %s]\n", address)
 	for {
 		if isReStart {
 			runtime.GOMAXPROCS(maxProcs)
 			go waitConnection(listener, connChan, errChan)
-
-			loging.Loger.Info("[监听进程已启动]")
+			log.Println("[监听进程已启动]")
+			//	loging.Loger.Info("[监听进程已启动]")
 			isReStart = false
 		}
 
@@ -39,6 +39,7 @@ func main() {
 		case err := <-errChan:
 			if reListenNum > 0 {
 				log.Printf("[主程序异常退出，将在 3 秒后重启 异常原因：%s ]\n", err)
+				loging.Loger.Error("[主程序异常退出，将在 3 秒后重启 异常原因：%s ]\n", err)
 				isReStart = true
 				reListenNum--
 				time.Sleep(time.Second * 3000)

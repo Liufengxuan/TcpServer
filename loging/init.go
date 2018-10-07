@@ -33,7 +33,7 @@ func initLogs() {
 		log.Println("配置文件logs::Debug 读取失败、或读取失败；debug模式默认已被设为关闭")
 	}
 
-	if debug {
+	if !debug {
 		name := cfg.GetString("logs::log_filename")
 		if name == "" {
 			name = "ser.log"
