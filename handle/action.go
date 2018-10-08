@@ -24,9 +24,32 @@ type context struct {
 	endFlag bool
 }
 
-/**************************验证并解析身份**********************************/
-func (ctxt *context) addFolder() {
+/**************************创建文一个件夹**********************************/
+func (ctxt *context) addFolder() { //4005数据未写入数据库、1001创建成功、2002命令格式错误
+	var result string
+	defer func() {
+		respByte(ctxt, result)
+	}()
 
+	if ctxt.cmdLength >= 3 && ctxt.currentFolder.IsDir {
+		newFolder := dbops.FileInfo{
+			User:     &ctxt.userInfo,
+			Name:     ctxt.cmds[2],
+			Size:     0,
+			IsDir:    true,
+			IsHome:   false,
+			ParentId: ctxt.currentFolder.Id}
+
+		i, err := dbops.DBContext.Insert(&newFolder)
+		if err != nil || i < 1 {
+			result = recode.RECODE_ADDDATAERR
+			loging.Loger.Error("[创建文件夹失败 {%s}]", newFolder)
+		} else {
+			result = recode.RECODE_OK
+		}
+		return
+	}
+	result = recode.RECODE_CMDFORMATERR
 }
 
 /**************************验证并解析身份**********************************/
